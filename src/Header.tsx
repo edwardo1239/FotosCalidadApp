@@ -9,42 +9,17 @@ import {
   Text,
   Alert
 } from 'react-native';
-import { io } from "socket.io-client";
-import { prediosType } from '../types/types';
+import { prediosType, serverResponseLotesType } from '../types/types';
 
 type propsType = {
     obtenerEnf: (data:string) => void
+    lotesList: prediosType[]
 }
 
-const socket = io("ws://192.168.0.168:3001/")
 
 export default function Header(props:propsType) {
     const [lote, setLote] = useState<string>('Seleccionar Lote')
-    const [lotesList, setLotesList] = useState<prediosType[]>([{id:'',nombre:'',tipoFruta:'Limon'}])
     const [modalVisible, setModalVisible] = useState<boolean>(false)
-
-    socket.on('lotesFotosCalidad', (data) => {
-        setLotesList(data)
-    })
-
-    //useEfect que hace la peticion al servidor cuando se inicia la app
-    useEffect(() =>{
-        try{
-            socket.emit('obtenerLotesFotosCalidad')
-        } catch(e:any){
-            return Alert.alert(`${e.name}:${e.message}`)
-        }
-    },[])
-    //useEffect que tiene un intervalo de media hora para actualizar la lista
-    useEffect(() =>{
-        const interval = setInterval(async () =>{
-            try{
-                socket.emit('obtenerLotesFotosCalidad')
-            } catch(e:any){
-                return Alert.alert(`${e.name}:${e.message}`)
-            }
-        },1_800_000)
-    },[])
 
   return (
      <View style={styles.container}>
@@ -72,7 +47,7 @@ export default function Header(props:propsType) {
           <View style={styles.viewModal}>
 
           <FlatList
-                data={lotesList}
+                data={props.lotesList}
                 renderItem={({ item }) => (
                   <TouchableOpacity 
                   style={styles.pressableStyle}

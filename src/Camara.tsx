@@ -13,9 +13,12 @@ import {
 } from 'react-native';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import RNFS from 'react-native-fs';
+import {fotoData} from '../types/types';
+import {AppState, AppStateStatus} from 'react-native';
 
 type propsType = {
   enf: string;
+  guardarFoto: (data: fotoData) => Promise<number>;
 };
 
 export default function Camara(props: propsType): JSX.Element {
@@ -26,9 +29,10 @@ export default function Camara(props: propsType): JSX.Element {
   const [showCamera, setShowCamera] = useState<boolean>(true);
   const [imageSource, setImageSource] = useState<string>('');
   const [nomnbreFoto, setNombreFoto] = useState<string>('');
-     const [modalVisible, setModalVisible] = useState<boolean>(false);
-    const [mensajeError, setMensajeError] = useState<string>('');
-    const [loader, setLoader] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [mensajeError, setMensajeError] = useState<string>('');
+  const [loader, setLoader] = useState<boolean>(false);
+  const [key, setKey] = useState(Math.random());
 
   useEffect(() => {
     async function getPermission() {
@@ -38,10 +42,31 @@ export default function Camara(props: propsType): JSX.Element {
     getPermission();
   }, []);
 
+  const appState = useRef(AppState.currentState);
+  const [appStateVisible, setAppStateVisible] = useState(appState.current);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if(appState.current.match(/inactive|backgorund/) && nextAppState == 'active') {
+        console.log("app has come to the foreground")
+        //setShowCamera(false)
+      }
+
+      appState.current = nextAppState
+      setAppStateVisible(appState.current)
+      console.log("appState", appState.current)
+      restartCamera()
+    });
+    return () => {
+      subscription.remove();
+    }
+  }, []);
+
+
   const capturarFoto = async () => {
     if (camera.current !== null) {
       const photo = await camera.current.takePhoto({
-        qualityPrioritization:'speed'
+        qualityPrioritization: 'speed',
       });
 
       setImageSource(photo.path);
@@ -50,73 +75,88 @@ export default function Camara(props: propsType): JSX.Element {
     }
   };
 
-    const sendImage = async () => {
+  const sendImage = async () => {
+    try {
+      if (props.enf !== '') {
+        if (nomnbreFoto !== '') {
+          setLoader(true);
+          setModalVisible(true);
+          var data = await RNFS.readFile(`file://'${imageSource}`, 'base64');
 
-      try {
-        if (props.enf !== null) {
+          // const response = await fetch(
+          //   'https://script.google.com/macros/s/AKfycbz5RrynHcCWvDCvl1NUvqqj3pgxCNSV2nUZamkeeM-8DY_egQmhhS7dvlY5aen-wp7h/exec',
+          //   {
+          //     method: 'POST',
+          //     body: JSON.stringify({
+          //       action: 'guardarFoto',
+          //       foto: data,
+          //       name: nomnbreFoto,
+          //       enf: props.enf,
+          //     }),
+          //     headers: {
+          //       'Content-type': 'application/json; charset=UTF-8',
+          //     },
+          //   },
+          // );
+          // const dataR = await response.json();
 
-          if (nomnbreFoto !== '') {
-            setLoader(true);
-            setModalVisible(true);
-            var data = await RNFS.readFile(
-              `file://'${imageSource}`,
-              'base64',
-            ).then(res => {
-              return res;
-            });
-
-            const response = await fetch('', {
-              method: 'POST',
-              body: JSON.stringify({
-                action: 'guardarFoto',
-                foto: data,
-                name: nomnbreFoto,
-                enf: props.enf,
-              }),
-              headers: {
-                'Content-type': 'application/json; charset=UTF-8',
-              },
-            });
-            const dataR = await response.json();
-            Alert.alert(dataR)
-
-            setLoader(false);
-            setModalVisible(false)
-            setNombreFoto('');
-            //setMensajeError('Foto guardada con exito');
-            setShowCamera(true);
-            return 0;
-
-          } else {
-            setLoader(false);
-            setMensajeError('Ingrese una descripcion de la foto');
-            setModalVisible(true);
-
+          // let dataServer = {
+          //   enf: props.enf,
+          //   fotoID: dataR.fotoID,
+          //   fotoName: dataR.nombreFoto,
+          // };
+          
+          let dataServer = {
+            enf:props.enf,
+            fotoName:nomnbreFoto,
+            foto:data
           }
+
+          const server = await props.guardarFoto(dataServer);
+          console.log(server);
+          if (server === 200) {
+            Alert.alert('Guardado con exito');
+          } else {
+            Alert.alert('Error al guardar');
+          }
+
+          setLoader(false);
+          setModalVisible(false);
+          setNombreFoto('');
+          //setMensajeError('Foto guardada con exito');
+          setShowCamera(true);
+          return 0;
         } else {
           setLoader(false);
-          setMensajeError('Seleccione un lote de la lista de informes');
+          setMensajeError('Ingrese una descripcion de la foto');
           setModalVisible(true);
-
         }
-      } catch (e:any) {
+      } else {
         setLoader(false);
-        setMensajeError(`${e.name}: ${e.message}`);
+        setMensajeError('Seleccione un lote de la lista de informes');
         setModalVisible(true);
-
       }
-    };
+    } catch (e: any) {
+      setLoader(false);
+      setMensajeError(`${e.name}: ${e.message}`);
+      setModalVisible(true);
+    }
+  };
 
   if (device == null) {
     return <Text>Camera not available</Text>;
   }
+
+  const restartCamera = () => {
+    setKey(Math.random());
+  };
 
   //   const saveIcon = <Icon name="share-apple" size={30} color="#fff" />;
   //   const deleteIcon = <Icon name="trash" size={30} color="#FF4000" />;
 
   return (
     <View style={styles.container}>
-          <Modal
+      <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
@@ -126,29 +166,32 @@ export default function Camara(props: propsType): JSX.Element {
         }}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {loader == true ?
-            <ActivityIndicator size="large" color="#00ff00"  /> :
-            <>
-            <Text style={styles.modalText}>{mensajeError}</Text>
-            <Pressable
-            style={[styles.button, styles.buttonClose]}
-            onPress={() => setModalVisible(!modalVisible)}>
-            <Text style={styles.textStyle}>Cerrar</Text>
-          </Pressable>
-          </>
-            }
+            {loader == true ? (
+              <ActivityIndicator size="large" color="#00ff00" />
+            ) : (
+              <>
+                <Text style={styles.modalText}>{mensajeError}</Text>
+                <Pressable
+                  style={[styles.button, styles.buttonClose]}
+                  onPress={() => setModalVisible(!modalVisible)}>
+                  <Text style={styles.textStyle}>Cerrar</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </Modal>
       {showCamera ? (
         <>
           <Camera
+            key={key}
             style={StyleSheet.absoluteFill}
             device={device}
             isActive={showCamera}
             ref={camera}
             photo={true}
             enableDepthData
+            orientation="portrait"
           />
 
           <View style={styles.buttonContainer}>
@@ -188,7 +231,7 @@ export default function Camara(props: propsType): JSX.Element {
                 style={styles.textInput}
                 onChangeText={text => setNombreFoto(text)}></TextInput>
               <TouchableOpacity
-              onPress={sendImage}
+                onPress={sendImage}
                 style={{
                   backgroundColor: '#9E3C29',
                   padding: 10,
@@ -254,7 +297,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     aspectRatio: 10 / 16,
-    transform:'rotate(-90deg)'
   },
   textInput: {
     backgroundColor: '#9E9331',
