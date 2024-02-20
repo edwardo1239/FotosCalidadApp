@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, {useEffect, useRef, useState} from 'react';
 import {
   StyleSheet,
@@ -13,17 +14,18 @@ import {
 } from 'react-native';
 import {Camera, useCameraDevice} from 'react-native-vision-camera';
 import RNFS from 'react-native-fs';
-import {fotoData} from '../types/types';
-import {AppState, AppStateStatus} from 'react-native';
+import {DataServer, fotoData} from '../types/types';
+import {AppState} from 'react-native';
 
 type propsType = {
-  enf: string;
+  id: string;
   guardarFoto: (data: fotoData) => Promise<number>;
 };
 
+
+
 export default function Camara(props: propsType): JSX.Element {
   const camera = useRef<Camera>(null);
-  const foto = useRef();
   const device = useCameraDevice('back');
 
   const [showCamera, setShowCamera] = useState<boolean>(true);
@@ -36,30 +38,31 @@ export default function Camara(props: propsType): JSX.Element {
 
   useEffect(() => {
     async function getPermission() {
-      const permission = await Camera.requestCameraPermission();
+      await Camera.requestCameraPermission();
       //console.log(`Camera permission status: ${permission}`);
     }
     getPermission();
   }, []);
 
   const appState = useRef(AppState.currentState);
-  const [appStateVisible, setAppStateVisible] = useState(appState.current);
+  const [, setAppStateVisible] = useState(appState.current);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
-      if(appState.current.match(/inactive|backgorund/) && nextAppState == 'active') {
-        console.log("app has come to the foreground")
+      if (appState.current.match(/inactive|backgorund/) && nextAppState === 'active')
+      {
+        console.log('app has come to the foreground');
         //setShowCamera(false)
       }
 
-      appState.current = nextAppState
-      setAppStateVisible(appState.current)
-      console.log("appState", appState.current)
-      restartCamera()
+      appState.current = nextAppState;
+      setAppStateVisible(appState.current);
+      console.log('appState', appState.current);
+      restartCamera();
     });
     return () => {
       subscription.remove();
-    }
+    };
   }, []);
 
 
@@ -77,7 +80,7 @@ export default function Camara(props: propsType): JSX.Element {
 
   const sendImage = async () => {
     try {
-      if (props.enf !== '') {
+      if (props.id !== '') {
         if (nomnbreFoto !== '') {
           setLoader(true);
           setModalVisible(true);
@@ -105,12 +108,12 @@ export default function Camara(props: propsType): JSX.Element {
           //   fotoID: dataR.fotoID,
           //   fotoName: dataR.nombreFoto,
           // };
-          
-          let dataServer = {
-            enf:props.enf,
+
+          let dataServer: DataServer = {
+            _id:props.id,
             fotoName:nomnbreFoto,
-            foto:data
-          }
+            foto:data,
+          };
 
           const server = await props.guardarFoto(dataServer);
           console.log(server);
@@ -166,7 +169,7 @@ export default function Camara(props: propsType): JSX.Element {
         }}>
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            {loader == true ? (
+            {loader === true ? (
               <ActivityIndicator size="large" color="#00ff00" />
             ) : (
               <>
@@ -209,7 +212,7 @@ export default function Camara(props: propsType): JSX.Element {
             />
           ) : null}
 
-          <View style={styles.backButton}></View>
+          <View style={styles.backButton} />
           <View style={styles.buttonContainer}>
             <View style={styles.buttons}>
               <TouchableOpacity
@@ -229,7 +232,7 @@ export default function Camara(props: propsType): JSX.Element {
               </TouchableOpacity>
               <TextInput
                 style={styles.textInput}
-                onChangeText={text => setNombreFoto(text)}></TextInput>
+                onChangeText={text => setNombreFoto(text)} />
               <TouchableOpacity
                 onPress={sendImage}
                 style={{

@@ -12,25 +12,40 @@ import Header from './src/Header';
 import Camara from './src/Camara';
 import Footer from './src/Footer';
 import {io} from 'socket.io-client';
-import {fotoData, prediosType, serverResponseLotesType} from './types/types';
+import {DataServer, prediosType, serverResponseLotesType} from './types/types';
 
-const socket = io('ws://192.168.0.172:3003/');
+const socket = io('ws://192.168.0.172:3006/');
 
 function App(): JSX.Element {
   const [lotesList, setLotesList] = useState<prediosType[]>([
-    {id: '', nombre: '', tipoFruta: 'Limon'},
+    {_id: '', predio: {PREDIO: '', _id: ''}, tipoFruta: 'Limon', enf: ''},
   ]);
 
   //useEfect que hace la peticion al servidor cuando se inicia la app
   useEffect(() => {
     try {
       const request = {
-        data: {action: 'obtenerLotesFotosCalidad', query: 'proceso'},
+        data: {
+          query: {
+            'calidad.fotosCalidad': {$exists: false},
+            enf: {$regex: '^E', $options: 'i'},
+          },
+          select: {enf: 1},
+          populate: {
+            path: 'predio',
+            select: 'PREDIO ICA',
+          },
+          sort: {fechaIngreso: -1},
+        },
+        collection: 'lotes',
+        action: 'getLotes',
+        query: 'proceso',
       };
       socket.emit(
-        'calidad',
-        request,
+        'fotosCalidad',
+        {data: request},
         (serverResponse: serverResponseLotesType) => {
+          console.log(serverResponse);
           if (serverResponse.status === 200) {
             setLotesList(serverResponse.data);
           } else {
@@ -43,20 +58,25 @@ function App(): JSX.Element {
     }
   }, []);
 
-  const [enf, setEnf] = useState<string>('');
+  const [id, setId] = useState<string>('');
 
-  const obtenerEnf = (dato: string) => {
-    setEnf(dato);
+  const obtenerId = (dato: string) => {
+    setId(dato);
   };
 
-  const guardarFoto = async (dataServer: fotoData): Promise<number> => {
-    const request = {
-      data: {action: 'guardarFotosCalidad', data: dataServer, query: 'proceso'},
+  const guardarFoto = async (data: DataServer): Promise<number> => {
+    const request: any = {
+      query: 'proceso',
+      collection: 'lotes',
+      action: 'putLote',
+      record: 'ingresoFotoCalidad',
+      data: data,
     };
+
     const response: serverResponseLotesType = await new Promise(resolve => {
       socket.emit(
-        'calidad',
-        request,
+        'fotosCalidad',
+        {data: request},
         (serverResponse: serverResponseLotesType) => {
           resolve(serverResponse);
           console.log(serverResponse);
@@ -72,8 +92,8 @@ function App(): JSX.Element {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header obtenerEnf={obtenerEnf} lotesList={lotesList} />
-      <Camara enf={enf} guardarFoto={guardarFoto} />
+      <Header obtenerId={obtenerId} lotesList={lotesList} />
+      <Camara id={id} guardarFoto={guardarFoto} />
       <Footer />
     </SafeAreaView>
   );

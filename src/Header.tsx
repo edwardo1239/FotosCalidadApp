@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+/* eslint-disable prettier/prettier */
+import React, {useState} from 'react';
 import {
   Image,
   StyleSheet,
@@ -7,19 +8,19 @@ import {
   Modal,
   FlatList,
   Text,
-  Alert
+  Alert,
 } from 'react-native';
-import { prediosType, serverResponseLotesType } from '../types/types';
+import { prediosType } from '../types/types';
 
 type propsType = {
-    obtenerEnf: (data:string) => void
+    obtenerId: (data:string) => void
     lotesList: prediosType[]
 }
 
 
 export default function Header(props:propsType) {
-    const [lote, setLote] = useState<string>('Seleccionar Lote')
-    const [modalVisible, setModalVisible] = useState<boolean>(false)
+    const [lote, setLote] = useState<string>('Seleccionar Lote');
+    const [modalVisible, setModalVisible] = useState<boolean>(false);
 
   return (
      <View style={styles.container}>
@@ -35,7 +36,7 @@ export default function Header(props:propsType) {
         <Text>{lote}</Text>
       </TouchableOpacity>
 
-      <Modal 
+      <Modal
       transparent={true}
       visible={modalVisible}
       animationType="fade"
@@ -49,16 +50,15 @@ export default function Header(props:propsType) {
           <FlatList
                 data={props.lotesList}
                 renderItem={({ item }) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                   style={styles.pressableStyle}
                   onPress={() => {
-                    setLote(item.id +"--"+ item.nombre)
-                    setModalVisible(false)
-                    props.obtenerEnf(item.id)
+                    setLote(item.enf + '--' + item.predio.PREDIO);
+                    setModalVisible(false);
+                    props.obtenerId(item._id);
                     }}>
-                  <Text style={styles.textList}>{item.id} -- {item.nombre}</Text>
+                  <Text style={styles.textList}>{item.enf} -- {item.predio.PREDIO}</Text>
                   </TouchableOpacity>)}
-               
               />
           </View>
         </View>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   centerModal:{
     flex: 1,
     alignItems: 'center',
-    marginTop:'18%'
+    marginTop:'18%',
   },
     viewModal:{
       backgroundColor: 'white',
@@ -109,17 +109,16 @@ const styles = StyleSheet.create({
       borderRadius: 20,
       alignItems:'center',
       paddingBottom: 20,
-      paddingTop:10
+      paddingTop:10,
     },
     textList:{
       color: 'black',
       marginLeft:10,
       marginRight: 15,
-      fontSize: 18
+      fontSize: 18,
     },
     pressableStyle:{
       marginTop: 10,
       marginBottom: 10,
-    
-    }
+    },
 });
