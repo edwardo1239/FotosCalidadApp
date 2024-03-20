@@ -14,7 +14,7 @@ import Footer from './src/Footer';
 import {io} from 'socket.io-client';
 import {DataServer, prediosType, serverResponseLotesType} from './types/types';
 
-const socket = io('ws://192.168.0.172:3006/');
+const socket = io('ws://192.168.0.172:3002/');
 
 function App(): JSX.Element {
   const [lotesList, setLotesList] = useState<prediosType[]>([
